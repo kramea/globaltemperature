@@ -1,0 +1,164 @@
+<html>
+
+<head>
+<title>Global Temperature Analysis</title>
+</head>
+
+<body>
+
+<p>Whenever I mention that I work in climate policy analysis, the first question I get asked is, "Is it really happening?". The issue has become so political that it has become a matter of 'belief'. Well, as Neil deGrasse Tyson says, the good thing about science is whether you believe it or not, it is true! :)</p>
+
+<p>Kaggle recently uploaded the latest global temperature dataset, which has detailed data on average land temperatures for every city, state and country in the world (raw data comes from Berkeley Earth). This is great because, now everyone can analyze the data and see it for themselves.</p>
+
+<p>I used R to explore the datasets. As the first step, I load all the relevant libraries. In this case, I would mainly need dplyr and tidyr packages for data wrangling, and I will be using ggplot2 for visualization.</p>
+
+<!--begin.rcode
+setwd("~/Documents/Side Projects/GlobalLandTemperatures")
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+end.rcode-->
+
+<p>Kaggle has several CSV files in this dataset folder, but I will be mainly using the global temperature data, and country-wide temperature data.</p>
+
+<!--begin.rcode
+global_data = read.csv("GlobalLandTemperaturesByCountry.csv")
+global_temp_data <- read.csv("GlobalTemperatures.csv")
+end.rcode-->
+
+<p>We can see the list of columns in the dataset using the 'head' command</p>
+
+<!--begin.rcode
+head(global_temp_data)
+end.rcode-->
+
+<p>I am mainly interested in year-by-year changes in land temperature data. So, from this dataset I would mainly need the 'dt' and 'LandAverageTemperature' columns. Since, I am only interested in year-wise data, I will be splitting the 'dt' column and summarizing the temperature every year. I also need to omit the missing data from the dataset before I calculate the mean temperaturevalues. Also, I am interested in values for the years 1900 and beyond.</p>
+
+<!--begin.rcode
+global_temp_data %>%
+  separate(col = dt, into = c("Year", "Month", "Day"), convert=TRUE) ->global_temp_data
+
+global_temp_data<-na.omit(global_temp_data)
+
+global_temp_data %>% 
+  filter(Year>1900) %>%
+  group_by(Year) %>% 
+  summarise(Temp = mean(LandAverageTemperature)) ->gdata_final
+end.rcode-->
+
+<p>Once, we get the dataset in the right form, we can plot the global mean temperature values from the years 1900.</p>
+
+<!--begin.rcode fig.width=7, fig.height=6
+ggplot(gdata_final, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Global Average Temperature 1900-2013")
+end.rcode-->
+
+<p>We can clearly see an increasing pattern of global temperatures. The increase seems to be about 1.5 degrees from 1900 to now. This is a lot!</p>
+
+<p>But, I also want to look at the temperature increases in every country, to make sure this is a strong pattern, and not some unusual event causing it. For this I will be using the country-wide temperature data. I wrote a function to modify data to the required form.</p>
+
+<!--begin.rcode
+refined_data <- function(cdata){
+  cdata %>%
+    separate(col = dt, into = c("Year", "Month", "Day"), convert=TRUE) ->cdata
+  
+  cdata<-na.omit(cdata)
+  
+  cdata %>% 
+    filter(Year>1900) %>%
+    group_by(Year) %>% 
+    summarise(Temp = mean(AverageTemperature)) ->cdata_final
+  return(cdata_final)
+}
+end.rcode-->
+
+<p>This follows the same sets of processes as I did for the global data.</p>
+
+<p>I would like to examine the BRIC countries (Brazil, Russia, India and China) first, and then look at some first world countries around the world. I am picking USA, Australia, Japan and Germany.</p>
+
+<!--begin.rcode
+brazil_data <- subset(global_data, Country=="Brazil")
+brazil_final_data <- refined_data(brazil_data)
+
+ru_data <- subset(global_data, Country=="Russia")
+ru_final_data <- refined_data(ru_data)
+
+india_data <- subset(global_data, Country=="India")
+india_final_data <- refined_data(india_data)
+
+ch_data <- subset(global_data, Country=="China")
+ch_final_data <- refined_data(ch_data)
+
+us_data <- subset(global_data, Country=="United States")
+us_final_data <- refined_data(us_data)
+
+aus_data <- subset(global_data, Country=="Australia")
+aus_final_data <- refined_data(aus_data)
+
+jp_data <- subset(global_data, Country=="Japan")
+jp_final_data <- refined_data(jp_data)
+
+gm_data <- subset(global_data, Country=="Germany")
+gm_final_data <- refined_data(gm_data)
+
+end.rcode-->
+
+<p>Next step is to generate plots for these countries.</p>
+
+<!--begin.rcode
+p1 <- ggplot(india_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("India Average Temperature 1900-2013")
+
+p2 <- ggplot(ch_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("China Average Temperature 1900-2013")
+
+p3 <- ggplot(brazil_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Brazil Average Temperature 1900-2013")
+
+p4 <- ggplot(ru_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Russia Average Temperature 1900-2013")
+
+p5 <- ggplot(us_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("United States Average Temperature 1900-2013")
+
+p6 <- ggplot(gm_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Germany Average Temperature 1900-2013")
+
+p7 <- ggplot(jp_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Japan Average Temperature 1900-2013")
+
+p8 <- ggplot(aus_final_data, aes(x=Year, y=Temp, color=Temp)) + scale_color_gradient(low="blue", high="red") +
+  geom_point() + theme(legend.position="none") + geom_smooth(method = "lm", se = FALSE, color="black") + labs(x="", y="Temperature (Celsius)") +
+  ggtitle("Australia Average Temperature 1900-2013")
+end.rcode-->
+
+<p>In order to visualize, I am using the multiplot function from Rmisc package. We have to be a little careful about this because, apparently, Rmisc masks several useful functions such as 'summarize' from 'dplyr'. So, I am loading it only later.</p>
+
+<!--begin.rcode
+library(Rmisc)
+end.rcode-->
+
+<p>First, we can look at the developing countries.</p>
+
+<!--begin.rcode
+multiplot(p1, p2, p3, p4, cols=2)
+end.rcode-->
+
+<p>Now, for some first world countries.</p>
+
+<!--begin.rcode
+multiplot(p5, p6, p7, p8, cols=2)
+end.rcode-->
+
+<p>So, the temperature increase is pretty consistent throughout the world!</p>
+
+</body>
+</html>
